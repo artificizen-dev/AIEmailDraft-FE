@@ -86,8 +86,8 @@ st.markdown("""
 def process_file(uploaded_file):
     try:
         # API endpoint
-        # api_url = "https://fahriw32qr.us-east-1.awsapprunner.com/api/services/email-draft/"
-        api_url = "http://127.0.0.1:8000/api/services/email-draft/"
+        api_url = "https://fahriw32qr.us-east-1.awsapprunner.com/api/services/email-draft/"
+        # api_url = "http://127.0.0.1:8000/api/services/email-draft/"
         
         # Prepare the file for upload
         files = {'file': (uploaded_file.name, uploaded_file, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
