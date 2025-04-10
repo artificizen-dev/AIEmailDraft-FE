@@ -86,7 +86,8 @@ st.markdown("""
 def process_file(uploaded_file):
     try:
         # API endpoint
-        api_url = "https://fahriw32qr.us-east-1.awsapprunner.com/api/services/email-draft/"
+        # api_url = "https://fahriw32qr.us-east-1.awsapprunner.com/api/services/email-draft/"
+        api_url = "http://127.0.0.1:8000/api/services/email-draft/"
         
         # Prepare the file for upload
         files = {'file': (uploaded_file.name, uploaded_file, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
@@ -123,22 +124,45 @@ def display_lead_data(lead_data):
     """, unsafe_allow_html=True)
 
 # Function to display drafted email
-def display_email(email_text):
-    # Extract subject line (assuming it starts with "Subject: ")
-    lines = email_text.split('\n')
-    subject = ""
-    body = email_text
+def display_email(drafted_email):
+    # Check if drafted_email is a JSON string or already a dictionary
+    if isinstance(drafted_email, str):
+        try:
+            # Parse the JSON string
+            email_data = json.loads(drafted_email)
+        except json.JSONDecodeError:
+            # Fall back to the old method if JSON parsing fails
+            lines = drafted_email.split('\n')
+            subject = ""
+            body = drafted_email
+            
+            if lines[0].startswith("Subject:"):
+                subject = lines[0].replace("Subject:", "").strip()
+                body = '\n'.join(lines[1:]).strip()
+                
+            email_data = {
+                "To": "",  # We don't have this in the old format
+                "subject": subject,
+                "body": body
+            }
+    else:
+        # Already a dictionary
+        email_data = drafted_email
     
-    if lines[0].startswith("Subject:"):
-        subject = lines[0].replace("Subject:", "").strip()
-        body = '\n'.join(lines[1:]).strip()
+    # Extract the fields from the JSON object
+    to_address = email_data.get("To", "")
+    subject = email_data.get("subject", "")
+    body = email_data.get("body", "")
     
+    # Display the email with the recipient address included
     st.markdown(f"""
     <div class="email-card">
+        <div class="recipient-line">To: {to_address}</div>
         <div class="subject-line">Subject: {subject}</div>
         <div class="email-body">{body}</div>
     </div>
     """, unsafe_allow_html=True)
+
 
 # Main app header
 st.title("📧 Email Drafting Tool")
@@ -203,28 +227,6 @@ if process_button and uploaded_file is not None:
                 st.subheader("Drafted Email")
                 display_email(item["drafted_email"])
                 
-                # Add copy button for email with nicer styling
-                if st.button(f"📋 Copy Email #{i+1}", key=f"copy_{i}", 
-                             help="Click to copy this email to your clipboard"):
-                    st.markdown(f"""
-                    <script>
-                        navigator.clipboard.writeText(`{item["drafted_email"]}`);
-                    </script>
-                    """, unsafe_allow_html=True)
-                    st.success("✅ Email copied to clipboard!")
-                    
-                # Add a download button for the email
-                email_download = item["drafted_email"].encode()
-                file_name = f"{item['lead_data']['first_name']}_{item['lead_data']['last_name']}_email.txt"
-                st.download_button(
-                    label=f"💾 Save Email #{i+1}",
-                    data=email_download,
-                    file_name=file_name,
-                    mime="text/plain",
-                    key=f"download_{i}",
-                    help="Download this email as a text file"
-                )
-            
             st.markdown("---")
     else:
         st.warning("No results returned from the API. Please check your file and try again.")
